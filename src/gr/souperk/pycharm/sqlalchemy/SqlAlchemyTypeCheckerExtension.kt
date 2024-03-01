@@ -5,6 +5,10 @@ import java.util.Optional
 import com.intellij.openapi.util.RecursionManager
 import com.jetbrains.python.psi.PyBinaryExpression
 import com.jetbrains.python.psi.types.*
+import kotlinx.collections.immutable.immutableListOf
+import kotlinx.collections.immutable.persistentListOf
+
+val REVERSED_OPERATORS = persistentListOf("__eq__", "__ne__")
 
 /**
  * Solves type checking issue when using "==" and "!=" with `sqlalchemy.ColumnElement`. This only
@@ -15,7 +19,6 @@ import com.jetbrains.python.psi.types.*
  *  different results for the same types.
  */
 class SqlAlchemyTypeCheckerExtension : PyTypeCheckerExtension {
-    private val REVERSED_OPERATORS = listOf("__eq__", "__ne__")
 
     override fun match(expected: PyType?, actual: PyType?, context: TypeEvalContext, substitutions: MutableMap<PyGenericType, PyType>): Optional<Boolean> {
         // Fix issue with type checking of binary expressions where comparisons are reversed
@@ -31,7 +34,6 @@ class SqlAlchemyTypeCheckerExtension : PyTypeCheckerExtension {
         }
 
         val leftType = context.getType(expression.leftExpression)
-        // println("match: comparing '${expected}' with '${leftType}'.")
         val matched = PyTypeChecker.match(expected, leftType, context, substitutions)
         return Optional.of(matched)
     }

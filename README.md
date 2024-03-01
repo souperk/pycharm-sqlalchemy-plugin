@@ -16,7 +16,7 @@ entity.status = "active"    # Correct
 entity.status = 10          # Warning: Expected type 'str', got 'int' instead
 ```
 
-Breaks type support for equality comparisons with class attributes. (Fixed for EAP builds, unfortunately cannot fix for older versions of PyCharm...)
+Breaks type support for equality comparisons with class attributes. (Fixed for EAP builds, unfortunately solution relies on type checker extension point introduced in EAP builds.)
 
 ```python
 class Entity(DeclarativeBase):
@@ -31,6 +31,29 @@ query = (
     select(Entity)
     .filter("active" == Entity.status)  # No warning, pycharm has a bug (see PY-24960).
 )
+```
+
+Improve support for `@declared_attr` and `@hybrid_property`
+
+```python
+class StatusMixin:
+    @declared_attr
+    def status(cls) -> Mapped[str]:
+        return mapped_column("status", String)
+
+class User(StatusMixin, DeclarativeBase):
+    @hybrid_property
+    def is_active(self) -> bool:
+        return self.status in ("active", "verified")
+    
+    @is_active.expression
+    def is_active(cls) -> ColumnElement[bool]:
+        return cls.status.in_(("active", "verified"))
+
+user = User()
+is_active: bool = user.is_active
+user.status = "active"      # Correct
+user.status = 10            # Warning: Expected type 'str', got 'int' instead
 ```
 
 See `example_project` for more examples.
